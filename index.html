@@ -6,23 +6,135 @@
     <title>Is it in a Bay Area Eruv?</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
+        /* Map and Result Styling */
         #map {
-             width: 100%;
-           height: 700px;
+            width: 100%;
+            height: 700px;
         }
+
         #result {
-            margin-top: 10px;
+            margin-top: 100px;
+            font-weight: bold;
+            font-style: italic;
+            font-size: 1.2em;
+            color: #333; 
         }
+
+        /* Container and Columns Styling */
+        .container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px; 
+        }
+
+        .left-column,
+        .right-column {
+            width: 48%; 
+	box-sizing: border-box;
+        }
+
+        .right-column {
+            border: 2px solid #000; 
+            padding: 10px; 
+        }
+
+
+	/* Input and Button Styles */
+	#addressInput {
+	    width: 100%; /* Ensures the input field is responsive */
+	    max-width: 300px; /* Limits width on larger screens */
+	    padding: 0.5rem; /* Adds padding inside the input field */
+	    font-size: 1rem; /* Matches the text size with regular text */
+	    box-sizing: border-box; /* Include padding and border in element's total width */
+	}
+
+	button {
+	    padding: 0.5rem 1rem; /* Adds padding inside the button */
+	    font-size: 1rem; /* Matches the text size with regular text */
+	    cursor: pointer; /* Shows pointer cursor on hover */
+	}
+
+	/* Responsive Styles */
+	@media (max-width: 768px) {
+	    .container {
+	        flex-direction: column; /* Stacks the columns on top of each other */
+    }
+    
+    .left-column,
+    .right-column {
+        width: 100%; /* Full width on small screens */
+        margin-bottom: 10px; /* Space between stacked elements */
+    }
+
+    #addressInput {
+        font-size: 1rem; /* Matches the text size with regular text */
+    }
+
+    button {
+        font-size: 1rem; /* Matches the text size with regular text */
+    }
+}
+
+
+
+
+
+
+
+
+
     </style>
 </head>
-<body>
+
     <h1>Check if Address is Inside an Eruv</h1>
-    <input type="text" id="addressInput" placeholder="Enter an address">
-    <button onclick="checkAddress()">Check</button>
-    <div id="result"></div>
+
+	<div class="container">
+	    <div class="left-column">
+	    <h3>A Project of the Berkeley Eruv. <p> <a href= "mailto:info@berkeleyeruv.org"> Contact us </a> with any questions or concerns. </h3>
+	    <input type="text" id="addressInput" placeholder="Enter an address, including city" style="width: 300px">
+	    <button onclick="checkAddress()">Check</button>
+	    <p>	    <p>	    <p>	    <p>
+	    <div id="result"></div>
+	</div>
+
+	<div class="right-column">
+        	<p>Each eruv is managed separately. For specific inquiries please contact:</p>
+	        <p>Berkeley Eruv: <a href= "mailto:info@berkeleyeruv.org"> info@berkeleyeruv.org </a> </p>
+	        <p>Oakland Eruv: <a href= "mailto: office@bethjacoboakland.org"> info@sfshul.org </a> </p>
+        	<p>San Francisco Richmond Eruv: <a href= "mailto: info@sfshul.org"> info@sfshul.org </a> </p>
+	        <p>San Francisco Sunset Eruv: <a href= "mailto: rabbi@adathisraelsf.org"> rabbi@adathisraelsf.org </a> </p>
+        	<p>San Francisco Mission Eruv: <a href= "mailto: chabadnoe@gmail.com"> chabadnoe@gmail.com </a> </p>
+
+	</div>
+</div>
+
+<script>
+	.container {
+		    display: flex;
+		    justify-content: space-between;
+		    margin-bottom: 20px; /* Space between text and map */
+		}
+
+		.left-column,
+		.right-column {
+		    width: 48%; /* Adjust as needed to fit the content */
+		}
+
+		.right-column {
+		    border: 2px solid #000; /* Adds a border to the right column */
+		    padding: 10px; /* Adds padding inside the border */
+		}
+	</script>
+
+<div id="map" style="height: 400px;"></div>
+
+
+
     <div id="map"></div>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+
+
 
 <script>
     // Initialize map
@@ -124,8 +236,8 @@ function checkAddress() {
                 const location = data[0];
                 const point = [location.lat, location.lon];
 
-                L.marker(point).addTo(map)
-                    .bindPopup("Input Address")
+                L.marker(location).addTo(map)
+                    .bindPopup(address)
                     .openPopup();
 
                 map.setView(point, 14);
@@ -144,17 +256,7 @@ function checkAddress() {
 }
 </script>
 
-      	<script>
-            L.marker([location.lat, location.lng]).addTo(map).bindPopup("Input Address").openPopup();
-            map.setView([location.lat, location.lng], 14);
 
-            // Check if the point is inside any of the polygons
-            const isInside = regionData.features.some(feature => 
-                turf.booleanPointInPolygon(point, turf.polygon([feature.geometry.coordinates[0]]))
-            );
-
-            document.getElementById('result').innerText = isInside ? "Inside an Eruv (Consult the local Rabbi to be sure)" : "Outside the Eruv";
-        
-    </script>
 </body>
+
 </html>
