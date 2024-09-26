@@ -229,30 +229,30 @@ function checkAddress() {
 
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
 
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            if (data.length > 0) {
-                const location = data[0];
-                const point = [location.lat, location.lon];
+fetch(url)
+    .then(response => response.json())
+    .then(data => {
+        if (data.length > 0) {
+            const location = data[0];
+            const point = [parseFloat(location.lon), parseFloat(location.lat)];
 
-                L.marker(location).addTo(map)
-                    .bindPopup(address)
-                    .openPopup();
+            L.marker([location.lat, location.lon]).addTo(map)
+                .bindPopup(address)
+                .openPopup();
 
-                map.setView(point, 14);
+            map.setView([location.lat, location.lon], 14);
 
-                // Check if the point is inside any of the polygons
-                const isInside = regionData.features.some(feature => 
-                    L.polygon(feature.geometry.coordinates).getBounds().contains(L.latLng(location.lat, location.lon))
-                );
+            // Check if the point is inside any of the polygons using Turf.js
+            const isInside = regionData.features.some(feature => 
+                turf.booleanPointInPolygon(point, turf.polygon(feature.geometry.coordinates))
+            );
 
-                document.getElementById('result').innerText = isInside ? 
-                    "Inside an Eruv (Consult the local Rabbi to be sure)" : "Outside the Eruv";
-            } else {
-                document.getElementById('result').innerText = "Address not found.";
-            }
-        });
+            document.getElementById('result').innerText = isInside ? 
+                "Inside an Eruv (Consult the local Rabbi to be sure)" : "Outside the Eruv";
+        } else {
+            document.getElementById('result').innerText = "Address not found.";
+        }
+    });
 }
 </script>
 
