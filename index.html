@@ -227,6 +227,7 @@ function checkAddress() {
         return;
     }
 
+    // Use Nominatim for geocoding
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
 
     fetch(url)
@@ -234,20 +235,63 @@ function checkAddress() {
         .then(data => {
             if (data.length > 0) {
                 const location = data[0];
-                const point = [location.lat, location.lon];
+                const lat = parseFloat(location.lat);
+                const lon = parseFloat(location.lon);
+                const point = [lat, lon];
 
-                L.marker(location).addTo(map)
+                // Remove previous marker if it exists
+                if (window.addressMarker) {
+                    map.removeLayer(window.addressMarker);
+                }
+
+                // Add new marker
+                window.addressMarker = L.marker(point).addTo(map)
                     .bindPopup(address)
                     .openPopup();
 
                 map.setView(point, 14);
 
-                // Check if the point is inside any of the polygons
-                const isInside = regionData.features.some(feature => 
-                    L.polygon(feature.geometry.coordinates).getBounds().contains(L.latLng(location.lat, location.lon))
-                );
+                // ** CORRECTED LOGIC START **
 
-                document.getElementById('result').innerText = isInside ? 
+                // Convert the address location to a Turf point object
+                const turfPoint = turf.point([lon, lat]);
+
+                // Check if the Turf point is inside any of the polygons
+                const isInside = regionData.features.some(feature => {
+                    // Turf expects coordinates in [longitude, latitude] format for the polygon
+                    // The regionData is already in [latitude, longitude] format for Leaflet's L.polygon,
+                    // but the GeoJSON feature inside regionData is reversed from standard GeoJSON order
+                    // (it is [lat, lon], not [lon, lat]).
+                    // The feature coordinates in the HTML are in [lat, lon] order: [37.8927571,-122.2940704]
+                    
+                    // We must convert the GeoJSON feature coordinates to the standard Turf/GeoJSON [lon, lat] order.
+                    // Leaflet.js expects [lat, lon], which is why L.polygon works on the data.
+
+                    // To use turf.booleanPointInPolygon, we need the feature in standard GeoJSON format ([lon, lat])
+                    // The easiest way is to re-create the feature with correctly ordered coordinates.
+                    
+                    // Note: Since the coordinate ordering in the provided HTML is non-standard ([lat, lon] inside the GeoJSON structure), 
+                    // a direct application of turf.booleanPointInPolygon() on the existing feature will fail.
+                    // However, since Turf is an external library and L.polygon uses [lat, lon],
+                    // a safer approach is to use a pure-Leaflet, non-Turf-dependent point-in-polygon library 
+                    // or stick to the custom implementation (if one existed).
+
+                    // REVERTING TO A LEAFLET-COMPATIBLE POINT-IN-POLYGON (PIPP) IMPLEMENTATION
+                    // The included code does NOT have a custom PIP function, so we must rely on a helper.
+                    
+                    // Since Turf is loaded, we will correct the coordinate ordering for the check:
+                    
+                    const correctlyOrderedCoordinates = feature.geometry.coordinates[0].map(coord => [coord[1], coord[0]]);
+                    
+                    const correctedPolygon = turf.polygon([correctlyOrderedCoordinates]);
+                    
+                    // Perform the accurate Point-in-Polygon check
+                    return turf.booleanPointInPolygon(turfPoint, correctedPolygon);
+                });
+
+                // ** CORRECTED LOGIC END **
+
+                document.getElementById('result').innerText = isInside ?
                     "Inside an Eruv (Consult the local Rabbi to be sure)" : "Outside the Eruv";
             } else {
                 document.getElementById('result').innerText = "Address not found.";
@@ -255,6 +299,7 @@ function checkAddress() {
         });
 }
 </script>
+
 
 
 </body>
