@@ -6,207 +6,275 @@
     <title>Is it in a Bay Area Eruv?</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        /* Map and Result Styling */
+        /* Base and Modern Reset */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            height: 100vh;
+        }
+
+        /* Layout Grid for Desktop */
+        .main-wrapper {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            grid-template-rows: auto 1fr;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            height: calc(100vh - 40px); /* Ensures it fits standard laptop screens without scrolling */
+        }
+
+        /* Card Styling */
+        .card {
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Specific Placements */
+        .address-card {
+            grid-column: 1;
+            grid-row: 1;
+        }
+
+        .contact-card {
+            grid-column: 1;
+            grid-row: 2;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            overflow-y: auto; /* Adds scroll if screen is exceptionally short */
+        }
+
+        .map-container {
+            grid-column: 2;
+            grid-row: 1 / span 2;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            background: #e5e5ea;
+        }
+
         #map {
             width: 100%;
-            height: 700px;
+            height: 100%;
         }
 
+        /* Typography & Inputs */
+        h1 {
+            font-size: 1.4rem;
+            margin-top: 0;
+            color: #111;
+        }
+
+        h3 {
+            font-size: 0.95rem;
+            font-weight: normal;
+            color: #555;
+            line-height: 1.4;
+            margin-bottom: 20px;
+        }
+
+        a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #0066cc;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #0066cc;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: #005bb5;
+        }
+
+        /* Dynamic Result Box Styling */
         #result {
-            margin-top: 100px;
-            font-weight: bold;
-            font-style: italic;
-            font-size: 1.2em;
-            color: #333; 
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            font-weight: 600;
+            text-align: center;
+            font-size: 1.1rem;
+            display: none; /* Hidden until searched */
         }
 
-        /* Container and Columns Styling */
-        .container {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px; 
+        .result-inside {
+            background-color: #edf7ed;
+            color: #1e4620;
+            border: 1px solid #c3e6cb;
+            display: block !important;
         }
 
-        .left-column,
-        .right-column {
-            width: 48%; 
-	box-sizing: border-box;
+        .result-outside {
+            background-color: #fdeded;
+            color: #5f2120;
+            border: 1px solid #f5c6cb;
+            display: block !important;
         }
 
-        .right-column {
-            border: 2px solid #000; 
-            padding: 10px; 
+        .result-neutral {
+            background-color: #f8f9fa;
+            color: #333;
+            border: 1px solid #ddd;
+            display: block !important;
         }
 
+        .small-note {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: normal;
+            margin-top: 4px;
+        }
 
-	/* Input and Button Styles */
-	#addressInput {
-	    width: 100%; /* Ensures the input field is responsive */
-	    max-width: 300px; /* Limits width on larger screens */
-	    padding: 0.5rem; /* Adds padding inside the input field */
-	    font-size: 1rem; /* Matches the text size with regular text */
-	    box-sizing: border-box; /* Include padding and border in element's total width */
-	}
+        /* Mobile Responsiveness */
+        @media (max-width: 850px) {
+            body {
+                height: auto;
+                padding: 15px;
+            }
 
-	button {
-	    padding: 0.5rem 1rem; /* Adds padding inside the button */
-	    font-size: 1rem; /* Matches the text size with regular text */
-	    cursor: pointer; /* Shows pointer cursor on hover */
-	}
+            .main-wrapper {
+                display: flex;
+                flex-direction: column;
+                height: auto;
+            }
 
-	/* Responsive Styles */
-	@media (max-width: 768px) {
-	    .container {
-	        flex-direction: column; /* Stacks the columns on top of each other */
-    }
-    
-    .left-column,
-    .right-column {
-        width: 100%; /* Full width on small screens */
-        margin-bottom: 10px; /* Space between stacked elements */
-    }
-
-    #addressInput {
-        font-size: 1rem; /* Matches the text size with regular text */
-    }
-
-    button {
-        font-size: 1rem; /* Matches the text size with regular text */
-    }
-}
-
-
-
-
-
-
-
-
-
+            /* Reordering the elements specifically for mobile */
+            .address-card { order: 1; }
+            .map-container { order: 2; height: 500px; }
+            .contact-card { order: 3; }
+        }
     </style>
 </head>
+<body>
 
-    <h1>Check if an Address is Inside an Eruv</h1>
+<div class="main-wrapper">
+    
+    <div class="card address-card">
+        <h1>Check if an Address is Inside an Eruv</h1>
+        <h3>
+            A Project of the Berkeley Eruv.<br>
+            <a href="https://www.berkeleyeruv.org/support-your-eruv-in-berkeley-and-albany/" target="_blank">Donations Welcome</a>.<br>
+            <a href="mailto:info@berkeleyeruv.org">Contact us</a> with any questions or concerns.<br><br>
+            <em>For all addresses close to an eruv border, check with the local eruv authority.</em>
+        </h3>
+        
+        <input type="text" id="addressInput" placeholder="Enter an address, including city">
+        <button onclick="checkAddress()">Check Address</button>
+        
+        <div id="result"></div>
+    </div>
 
-	<div class="container">
-	    <div class="left-column">
-	    <h3>A Project of the Berkeley Eruv. <a href = https://www.berkeleyeruv.org/support-your-eruv-in-berkeley-and-albany/"> Donations Welcome <p> <a href= "mailto:info@berkeleyeruv.org"> Contact us </a> with any questions or concerns.<p> For all addresses close to an eruv border, check with the local eruv authority. <p> </h3>
-	    <input type="text" id="addressInput" placeholder="Enter an address, including city" style="width: 300px">
-	    <button onclick="checkAddress()">Check</button>
-	    <p>	
-	    <div id="result"></div>
-	</div>
+    <div class="map-container">
+        <div id="map"></div>
+    </div>
 
-	<div class="right-column">
-        	<p>Each eruv is managed separately. For specific inquiries please contact:</p>
-	        <p>Berkeley Eruv: <a href= "mailto:info@berkeleyeruv.org"> info@berkeleyeruv.org </a> </p>
-	        <p>Oakland Eruv: <a href= "mailto: office@bethjacoboakland.org"> office@bethjacoboakland.org </a> </p>
-        	<p>San Francisco Richmond Eruv: <a href= "mailto: info@sfshul.org"> info@sfshul.org </a> </p>
-	        <p>San Francisco Sunset Eruv: <a href= "mailto: rabbi@adathisraelsf.org"> rabbi@adathisraelsf.org </a> </p>
-        	<p>San Francisco Noe/Mission Eruv: <a href= "mailto: chabadnoe@gmail.com"> chabadnoe@gmail.com </a> </p>
+    <div class="card contact-card">
+        <p><strong>Each eruv is managed separately.</strong> For specific inquiries please contact:</p>
+        <p>Berkeley Eruv: <a href="mailto:info@berkeleyeruv.org">info@berkeleyeruv.org</a></p>
+        <p>Oakland Eruv: <a href="mailto:office@bethjacoboakland.org">office@bethjacoboakland.org</a></p>
+        <p>SF Richmond Eruv: <a href="mailto:info@sfshul.org">info@sfshul.org</a></p>
+        <p>SF Sunset Eruv: <a href="mailto:rabbi@adathisraelsf.org">rabbi@adathisraelsf.org</a></p>
+        <p>SF Noe/Mission Eruv: <a href="mailto:chabadnoe@gmail.com">chabadnoe@gmail.com</a></p>
+    </div>
 
-	</div>
 </div>
 
-<script>
-	.container {
-		    display: flex;
-		    justify-content: space-between;
-		    margin-bottom: 20px; /* Space between text and map */
-		}
-
-		.left-column,
-		.right-column {
-		    width: 48%; /* Adjust as needed to fit the content */
-		}
-
-		.right-column {
-		    border: 2px solid #000; /* Adds a border to the right column */
-		    padding: 10px; /* Adds padding inside the border */
-		}
-	</script>
-
-<div id="map" style="height: 400px;"></div>
-
-
-
-    <div id="map"></div>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
-
-
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
 
 <script>
     // Initialize map
     const map = L.map('map').setView([37.812671439479544, -122.36393137656991], 11);
-
+    
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
     const regionData = {
         "features": [
-                           // Berkeley Eruv
-                {
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "Polygon",
-                        "coordinates": [[
-                           [37.8927571,-122.2940704], [37.8863811,-122.2920034], [37.8850121,-122.2915454], [37.8788921,-122.2888344], [37.8788831,-122.2888754], [37.8792281,-122.2890744], [37.8793111,-122.2894054], [37.8779141,-122.2899704], [37.8773921,-122.2900774], [37.8765471,-122.2916824], [37.8763091,-122.2916404], [37.8738681,-122.2908734], [37.8739651,-122.2901174], [37.8738131,-122.2900864], [37.8731691,-122.2900074], [37.8694521,-122.2895864], [37.8674991,-122.2892274], [37.8613764,-122.2879609], [37.861313,-122.2877262], [37.8613428,-122.2874128], [37.8605668,-122.2872541], [37.8605963,-122.2870752], [37.8607883,-122.2855626], [37.8606448,-122.2855396], [37.8606562,-122.2854245], [37.8603267,-122.2853359], [37.860325,-122.2852956], [37.8599411,-122.285203], [37.8605001,-122.2807874], [37.8601441,-122.2806224], [37.8601051,-122.2802944], [37.8570811,-122.2797504], [37.8569141,-122.2795884], [37.8571951,-122.2774084], [37.8570361,-122.2775284], [37.8552641,-122.2771714], [37.8552391,-122.2770784], [37.8561161,-122.2712224], [37.8669181,-122.2724294], [37.8669271,-122.2724514], [37.8668411,-122.2734024], [37.8670301,-122.2734964], [37.8677171,-122.2736004], [37.8676841,-122.2737954], [37.8704591,-122.2741034], [37.8703911,-122.2751074], [37.8792561,-122.2760864], [37.8794421,-122.2750834], [37.8800641,-122.2751624], [37.8861411,-122.2758254], [37.8887811,-122.2766464], [37.8890601,-122.2764784], [37.8927511,-122.2773014], [37.8930101,-122.2772674], [37.8938221,-122.2769094], [37.8940751,-122.2769734], [37.8952621,-122.2780014], [37.8937931,-122.2808694], [37.8936651,-122.2810234], [37.8956841,-122.2841574], [37.8962321,-122.2849744], [37.8964841,-122.2851714], [37.8965451,-122.2872814], [37.8948641,-122.2873724], [37.8947031,-122.2874154], [37.8947391,-122.2892254], [37.8931881,-122.2892894], [37.8928711,-122.2890084], [37.8929391,-122.2916074], [37.8928071,-122.2918084], [37.8928761,-122.2919534], [37.8929251,-122.2927704], [37.8976661,-122.2925724], [37.8977471,-122.2954044], [37.8974661,-122.2955864], [37.8927571,-122.2940704]
-                        ]]
-                    }
-                },
-
-                // Richmond Eruv
-                {
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "Polygon",
-                        "coordinates": [[
-                      [37.7807885362167,-122.506289373561],[37.7772054941666,-122.506039863916],[37.7771201077814,-122.508194993907],[37.7752636097029,-122.508043009366],[37.7751758928577,-122.510220240566],[37.7732668707496,-122.510031742075],[37.7733143473331,-122.508992008023],[37.7714990462029,-122.508872058915],[37.771699,-122.502859],[37.772292,-122.490585],[37.772801,-122.47977],[37.773038,-122.474792],[37.773242,-122.474513],[37.781807,-122.475157],[37.7842887604132,-122.475325830022],[37.7834568832785,-122.493463339759],[37.7815716273163,-122.493339975467],[37.781162,-122.502944],[37.7810239949243,-122.505966069877],[37.7807885362167,-122.506289373561]
-                        ]]
-                    }
-                },
-
-		// Mission Eruv
-		{
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "Polygon",
-                        "coordinates": [[
-                            
-
-[37.761987,-122.417197], [37.760719,-122.438278], [37.752789,-122.437945], [37.75277,-122.436467], [37.743956,-122.435642], [37.744088,-122.433405], [37.74332,-122.433351], [37.743456,-122.431125], [37.741845,-122.430955], [37.742247,-122.424256], [37.743847,-122.424412], [37.74395,-122.42268], [37.745298,-122.422228], [37.746389,-122.422322], [37.746253,-122.424644], [37.747805,-122.424776], [37.747898,-122.423267], [37.747987,-122.423268], [37.74791,-122.42477], [37.748647,-122.424864], [37.749242,-122.41488], [37.75724,-122.415659], [37.757188,-122.416749], [37.761987,-122.417197]
-
-                        ]]
+            // Berkeley Eruv
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[
+                        [37.8927571,-122.2940704], [37.8863811,-122.2920034], [37.8850121,-122.2915454], [37.8788921,-122.2888344], [37.8788831,-122.2888754], [37.8792281,-122.2890744], [37.8793111,-122.2894054], [37.8779141,-122.2899704], [37.8773921,-122.2900774], [37.8765471,-122.2916824], [37.8763091,-122.2916404], [37.8738681,-122.2908734], [37.8739651,-122.2901174], [37.8738131,-122.2900864], [37.8731691,-122.2900074], [37.8694521,-122.2895864], [37.8674991,-122.2892274], [37.8613764,-122.2879609], [37.861313,-122.2877262], [37.8613428,-122.2874128], [37.8605668,-122.2872541], [37.8605963,-122.2870752], [37.8607883,-122.2855626], [37.8606448,-122.2855396], [37.8606562,-122.2854245], [37.8603267,-122.2853359], [37.860325,-122.2852956], [37.8599411,-122.285203], [37.8605001,-122.2807874], [37.8601441,-122.2806224], [37.8601051,-122.2802944], [37.8570811,-122.2797504], [37.8569141,-122.2795884], [37.8571951,-122.2774084], [37.8570361,-122.2775284], [37.8552641,-122.2771714], [37.8552391,-122.2770784], [37.8561161,-122.2712224], [37.8669181,-122.2724294], [37.8669271,-122.2724514], [37.8668411,-122.2734024], [37.8670301,-122.2734964], [37.8677171,-122.2736004], [37.8676841,-122.2737954], [37.8704591,-122.2741034], [37.8703911,-122.2751074], [37.8792561,-122.2760864], [37.8794421,-122.2750834], [37.8800641,-122.2751624], [37.8861411,-122.2758254], [37.8887811,-122.2766464], [37.8890601,-122.2764784], [37.8927511,-122.2773014], [37.8930101,-122.2772674], [37.8938221,-122.2769094], [37.8940751,-122.2769734], [37.8952621,-122.2780014], [37.8937931,-122.2808694], [37.8936651,-122.2810234], [37.8956841,-122.2841574], [37.8962321,-122.2849744], [37.8964841,-122.2851714], [37.8965451,-122.2872814], [37.8948641,-122.2873724], [37.8947031,-122.2874154], [37.8947391,-122.2892254], [37.8931881,-122.2892894], [37.8928711,-122.2890084], [37.8929391,-122.2916074], [37.8928071,-122.2918084], [37.8928761,-122.2919534], [37.8929251,-122.2927704], [37.8976661,-122.2925724], [37.8977471,-122.2954044], [37.8974661,-122.2955864], [37.8927571,-122.2940704]
+                    ]]
                 }
             },
-
-
-		// Oakland Eruv
-		{
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "Polygon",
-                        "coordinates": [[
-
-[37.8085075,-122.2421089],[37.8083242,-122.2419924],[37.8082098,-122.2423787],[37.8080953,-122.242883],[37.8087226,-122.2448785],[37.8077393,-122.2456188],[37.8077817,-122.245769],[37.8082818,-122.2453613],[37.8079174,-122.2459407],[37.8078411,-122.2466809],[37.807146,-122.2478933],[37.8072223,-122.2480113],[37.8071884,-122.2484297],[37.8049807,-122.2496117],[37.804933,-122.2495024],[37.8046856,-122.2496435],[37.8042279,-122.2508666],[37.8040838,-122.2510114],[37.8036938,-122.2512099],[37.803465,-122.2526691],[37.8034268,-122.2527925],[37.80327,-122.2528622],[37.8026554,-122.2531518],[37.8024647,-122.2533986],[37.8015343,-122.2528447],[37.8015703,-122.2526771],[37.8010659,-122.2524062],[37.8009536,-122.2519717],[37.8008424,-122.2519234],[37.8005615,-122.2512528],[37.8001567,-122.2506091],[37.7990398,-122.2491285],[37.7997011,-122.2482702],[37.7988533,-122.2473261],[37.7923762,-122.2401592],[37.7875942,-122.2318337],[37.7881114,-122.2318551],[37.7883849,-122.2317639],[37.7887007,-122.2316084],[37.79021,-122.2301331],[37.7907144,-122.2290441],[37.7921472,-122.2275636],[37.793597,-122.2265551],[37.7971238,-122.2254714],[37.7978943,-122.2251128],[37.7985799,-122.2246254],[37.7997553,-122.2242329],[37.7990093,-122.2208855],[37.7983989,-122.2189328],[37.7980767,-122.2188899],[37.7975003,-122.2192762],[37.7967203,-122.2161433],[37.7972014,-122.2158372],[37.7976062,-122.215617],[37.7971717,-122.2137985],[37.797975,-122.2135088],[37.7984158,-122.2153112],[37.799128,-122.2149035],[37.8016203,-122.2120497],[37.8018238,-122.2123715],[37.8065539,-122.2074363],[37.8082153,-122.2048613],[37.8096733,-122.2021362],[37.8102666,-122.2016856],[37.8105209,-122.2013423],[37.8102327,-122.2003123],[37.8100632,-122.198424],[37.8104022,-122.198188],[37.8103853,-122.1976945],[37.8105378,-122.1974799],[37.8186785,-122.2048798],[37.8186785,-122.2048798],[37.8264924,-122.2111669],[37.8296109,-122.2138921],[37.832475,-122.2166816],[37.8328818,-122.2183982],[37.8325598,-122.2211233],[37.8323309,-122.2215953],[37.8319158,-122.2219815],[37.8316955,-122.2221318],[37.8309837,-122.2225395],[37.8304498,-122.2228077],[37.8302888,-122.2234407],[37.8294922,-122.2255006],[37.8290177,-122.2275177],[37.8295939,-122.2286764],[37.8306108,-122.2294059],[37.830848,-122.2293738],[37.8310472,-122.2292075],[37.8312823,-122.2297788],[37.8314073,-122.2304145],[37.8315217,-122.231128],[37.831509,-122.2320453],[37.8310091,-122.2327427],[37.8304583,-122.2340623],[37.8305981,-122.2352854],[37.8306447,-122.2365943],[37.8309328,-122.2370234],[37.8305939,-122.238504],[37.8305091,-122.2408],[37.8301871,-122.243568],[37.8295854,-122.2429136],[37.8296024,-122.2433427],[37.8294753,-122.2437182],[37.8292211,-122.2438684],[37.828933,-122.2439757],[37.828594,-122.2441045],[37.8281872,-122.2442761],[37.8275029,-122.2454214],[37.8275644,-122.2455368],[37.8263229,-122.2475806],[37.8263398,-122.2476664],[37.8252699,-122.2480205],[37.825183,-122.2479347],[37.825058,-122.2481224],[37.8239955,-122.2490961],[37.8229669,-122.2501931],[37.8237975,-122.251384],[37.8237191,-122.2514256],[37.8233949,-122.2510702],[37.8227466,-122.2527627],[37.8227646,-122.2530269],[37.8226894,-122.2530228],[37.8224669,-122.253342],[37.8220305,-122.2538543],[37.8218631,-122.2533594],[37.8217508,-122.2534118],[37.8219711,-122.2539616],[37.8215686,-122.2544256],[37.8212889,-122.2540823],[37.8189328,-122.251443],[37.81817,-122.2505203],[37.8175937,-122.250928],[37.8173097,-122.2504318],[37.8168298,-122.2507685],[37.8164787,-122.2509528],[37.8162885,-122.2509924],[37.8162037,-122.2515717],[37.8126439,-122.2505418],[37.811186,-122.249941],[37.8101689,-122.2479883],[37.8085075,-122.2421089]
-
-
-                        ]]
+            // Richmond Eruv
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[
+                        [37.7807885362167,-122.506289373561],[37.7772054941666,-122.506039863916],[37.7771201077814,-122.508194993907],[37.7752636097029,-122.508043009366],[37.7751758928577,-122.510220240566],[37.7732668707496,-122.510031742075],[37.7733143473331,-122.508992008023],[37.7714990462029,-122.508872058915],[37.771699,-122.502859],[37.772292,-122.490585],[37.772801,-122.47977],[37.773038,-122.474792],[37.773242,-122.474513],[37.781807,-122.475157],[37.7842887604132,-122.475325830022],[37.7834568832785,-122.493463339759],[37.7815716273163,-122.493339975467],[37.781162,-122.502944],[37.7810239949243,-122.505966069877],[37.7807885362167,-122.506289373561]
+                    ]]
                 }
             },
-
-		// Sunset Eruv
-		{
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "Polygon",
-                        "coordinates": [[
-
-[37.759865,-122.477818],[37.7584225397786,-122.509076415298],[37.7551598847685,-122.508749037571],[37.7519189894964,-122.508326115199],[37.7454276630784,-122.507465310472],[37.7453687575351,-122.507034022361],[37.7435596927647,-122.506928952902],[37.7449010112571,-122.476881855211],[37.759865,-122.477818]
-
-                        ]]
+            // Mission Eruv
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[
+                        [37.761987,-122.417197], [37.760719,-122.438278], [37.752789,-122.437945], [37.75277,-122.436467], [37.743956,-122.435642], [37.744088,-122.433405], [37.74332,-122.433351], [37.743456,-122.431125], [37.741845,-122.430955], [37.742247,-122.424256], [37.743847,-122.424412], [37.74395,-122.42268], [37.745298,-122.422228], [37.746389,-122.422322], [37.746253,-122.424644], [37.747805,-122.424776], [37.747898,-122.423267], [37.747987,-122.423268], [37.74791,-122.42477], [37.748647,-122.424864], [37.749242,-122.41488], [37.75724,-122.415659], [37.757188,-122.416749], [37.761987,-122.417197]
+                    ]]
+                }
+            },
+            // Oakland Eruv
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[
+                        [37.8085075,-122.2421089],[37.8083242,-122.2419924],[37.8082098,-122.2423787],[37.8080953,-122.242883],[37.8087226,-122.2448785],[37.8077393,-122.2456188],[37.8077817,-122.245769],[37.8082818,-122.2453613],[37.8079174,-122.2459407],[37.8078411,-122.2466809],[37.807146,-122.2478933],[37.8072223,-122.2480113],[37.8071884,-122.2484297],[37.8049807,-122.2496117],[37.804933,-122.2495024],[37.8046856,-122.2496435],[37.8042279,-122.2508666],[37.8040838,-122.2510114],[37.8036938,-122.2512099],[37.803465,-122.2526691],[37.8034268,-122.2527925],[37.80327,-122.2528622],[37.8026554,-122.2531518],[37.8024647,-122.2533986],[37.8015343,-122.2528447],[37.8015703,-122.2526771],[37.8010659,-122.2524062],[37.8009536,-122.2519717],[37.8008424,-122.2519234],[37.8005615,-122.2512528],[37.8001567,-122.2506091],[37.7990398,-122.2491285],[37.7997011,-122.2482702],[37.7988533,-122.2473261],[37.7923762,-122.2401592],[37.7875942,-122.2318337],[37.7881114,-122.2318551],[37.7883849,-122.2317639],[37.7887007,-122.2316084],[37.79021,-122.2301331],[37.7907144,-122.2290441],[37.7921472,-122.2275636],[37.793597,-122.2265551],[37.7971238,-122.2254714],[37.7978943,-122.2251128],[37.7985799,-122.2246254],[37.7997553,-122.2242329],[37.7990093,-122.2208855],[37.7983989,-122.2189328],[37.7980767,-122.2188899],[37.7975003,-122.2192762],[37.7967203,-122.2161433],[37.7972014,-122.2158372],[37.7976062,-122.215617],[37.7971717,-122.2137985],[37.797975,-122.2135088],[37.7984158,-122.2153112],[37.799128,-122.2149035],[37.8016203,-122.2120497],[37.8018238,-122.2123715],[37.8065539,-122.2074363],[37.8082153,-122.2048613],[37.8096733,-122.2021362],[37.8102666,-122.2016856],[37.8105209,-122.2013423],[37.8102327,-122.2003123],[37.8100632,-122.198424],[37.8104022,-122.198188],[37.8103853,-122.1976945],[37.8105378,-122.1974799],[37.8186785,-122.2048798],[37.8186785,-122.2048798],[37.8264924,-122.2111669],[37.8296109,-122.2138921],[37.832475,-122.2166816],[37.8328818,-122.2183982],[37.8325598,-122.2211233],[37.8323309,-122.2215953],[37.8319158,-122.2219815],[37.8316955,-122.2221318],[37.8309837,-122.2225395],[37.8304498,-122.2228077],[37.8302888,-122.2234407],[37.8294922,-122.2255006],[37.8290177,-122.2275177],[37.8295939,-122.2286764],[37.8306108,-122.2294059],[37.830848,-122.2293738],[37.8310472,-122.2292075],[37.8312823,-122.2297788],[37.8314073,-122.2304145],[37.8315217,-122.231128],[37.831509,-122.2320453],[37.8310091,-122.2327427],[37.8304583,-122.2340623],[37.8305981,-122.2352854],[37.8306447,-122.2365943],[37.8309328,-122.2370234],[37.8305939,-122.238504],[37.8305091,-122.2408],[37.8301871,-122.243568],[37.8295854,-122.2429136],[37.8296024,-122.2433427],[37.8294753,-122.2437182],[37.8292211,-122.2438684],[37.828933,-122.2439757],[37.828594,-122.2441045],[37.8281872,-122.2442761],[37.8275029,-122.2454214],[37.8275644,-122.2455368],[37.8263229,-122.2475806],[37.8263398,-122.2476664],[37.8252699,-122.2480205],[37.825183,-122.2479347],[37.825058,-122.2481224],[37.8239955,-122.2490961],[37.8229669,-122.2501931],[37.8237975,-122.251384],[37.8237191,-122.2514256],[37.8233949,-122.2510702],[37.8227466,-122.2527627],[37.8227646,-122.2530269],[37.8226894,-122.2530228],[37.8224669,-122.253342],[37.8220305,-122.2538543],[37.8218631,-122.2533594],[37.8217508,-122.2534118],[37.8219711,-122.2539616],[37.8215686,-122.2544256],[37.8212889,-122.2540823],[37.8189328,-122.251443],[37.81817,-122.2505203],[37.8175937,-122.250928],[37.8173097,-122.2504318],[37.8168298,-122.2507685],[37.8164787,-122.2509528],[37.8162885,-122.2509924],[37.8162037,-122.2515717],[37.8126439,-122.2505418],[37.811186,-122.249941],[37.8101689,-122.2479883],[37.8085075,-122.2421089]
+                    ]]
+                }
+            },
+            // Sunset Eruv
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[
+                        [37.759865,-122.477818],[37.7584225397786,-122.509076415298],[37.7551598847685,-122.508749037571],[37.7519189894964,-122.508326115199],[37.7454276630784,-122.507465310472],[37.7453687575351,-122.507034022361],[37.7435596927647,-122.506928952902],[37.7449010112571,-122.476881855211],[37.759865,-122.477818]
+                    ]]
                 }
             }
         ]
@@ -214,94 +282,90 @@
 
     // Add polygons to the map
     regionData.features.forEach(feature => {
-        L.polygon(feature.geometry.coordinates, { color: 'red', weight: 2, fillOpacity: 0.3 }).addTo(map);
+        L.polygon(feature.geometry.coordinates, { color: '#0066cc', weight: 2, fillOpacity: 0.2 }).addTo(map);
     });
-</script>
 
+    // Handle Enter key for search
+    document.getElementById("addressInput").addEventListener("keyup", function(event) {
+        if (event.key === "Enter") {
+            checkAddress();
+        }
+    });
 
-<script>
-function checkAddress() {
-    const address = document.getElementById('addressInput').value;
-    if (!address) {
-        document.getElementById('result').innerText = "Please enter an address.";
-        return;
-    }
+    function checkAddress() {
+        const address = document.getElementById('addressInput').value;
+        const resultElement = document.getElementById('result');
+        
+        // Reset classes
+        resultElement.className = '';
 
-    // Use Nominatim for geocoding
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
+        if (!address) {
+            resultElement.innerText = "Please enter an address.";
+            resultElement.classList.add('result-neutral');
+            return;
+        }
 
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            if (data.length > 0) {
-                const location = data[0];
-                const lat = parseFloat(location.lat);
-                const lon = parseFloat(location.lon);
-                const point = [lat, lon];
+        // Show a loading state briefly
+        resultElement.innerText = "Checking address...";
+        resultElement.classList.add('result-neutral');
 
-                // Remove previous marker if it exists
-                if (window.addressMarker) {
-                    map.removeLayer(window.addressMarker);
+        // Use Nominatim for geocoding
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                resultElement.className = ''; // Reset class again after load
+                
+                if (data.length > 0) {
+                    const location = data[0];
+                    const lat = parseFloat(location.lat);
+                    const lon = parseFloat(location.lon);
+                    const point = [lat, lon];
+
+                    // Remove previous marker if it exists
+                    if (window.addressMarker) {
+                        map.removeLayer(window.addressMarker);
+                    }
+
+                    // Add new marker
+                    window.addressMarker = L.marker(point).addTo(map)
+                        .bindPopup(address)
+                        .openPopup();
+
+                    map.setView(point, 14);
+
+                    // Convert the address location to a Turf point object
+                    const turfPoint = turf.point([lon, lat]);
+
+                    // Check if the Turf point is inside any of the polygons
+                    const isInside = regionData.features.some(feature => {
+                        const correctlyOrderedCoordinates = feature.geometry.coordinates[0].map(coord => [coord[1], coord[0]]);
+                        const correctedPolygon = turf.polygon([correctlyOrderedCoordinates]);
+                        return turf.booleanPointInPolygon(turfPoint, correctedPolygon);
+                    });
+
+                    // Update UI Based on Logic
+                    if (isInside) {
+                        resultElement.innerHTML = "Inside an Eruv <span class='small-note'>(Consult the local Rabbi to be sure)</span>";
+                        resultElement.classList.add('result-inside');
+                    } else {
+                        resultElement.innerHTML = "Outside the Eruv";
+                        resultElement.classList.add('result-outside');
+                    }
+                    
+                } else {
+                    resultElement.innerText = "Address not found.";
+                    resultElement.classList.add('result-neutral');
                 }
-
-                // Add new marker
-                window.addressMarker = L.marker(point).addTo(map)
-                    .bindPopup(address)
-                    .openPopup();
-
-                map.setView(point, 14);
-
-                // ** CORRECTED LOGIC START **
-
-                // Convert the address location to a Turf point object
-                const turfPoint = turf.point([lon, lat]);
-
-                // Check if the Turf point is inside any of the polygons
-                const isInside = regionData.features.some(feature => {
-                    // Turf expects coordinates in [longitude, latitude] format for the polygon
-                    // The regionData is already in [latitude, longitude] format for Leaflet's L.polygon,
-                    // but the GeoJSON feature inside regionData is reversed from standard GeoJSON order
-                    // (it is [lat, lon], not [lon, lat]).
-                    // The feature coordinates in the HTML are in [lat, lon] order: [37.8927571,-122.2940704]
-                    
-                    // We must convert the GeoJSON feature coordinates to the standard Turf/GeoJSON [lon, lat] order.
-                    // Leaflet.js expects [lat, lon], which is why L.polygon works on the data.
-
-                    // To use turf.booleanPointInPolygon, we need the feature in standard GeoJSON format ([lon, lat])
-                    // The easiest way is to re-create the feature with correctly ordered coordinates.
-                    
-                    // Note: Since the coordinate ordering in the provided HTML is non-standard ([lat, lon] inside the GeoJSON structure), 
-                    // a direct application of turf.booleanPointInPolygon() on the existing feature will fail.
-                    // However, since Turf is an external library and L.polygon uses [lat, lon],
-                    // a safer approach is to use a pure-Leaflet, non-Turf-dependent point-in-polygon library 
-                    // or stick to the custom implementation (if one existed).
-
-                    // REVERTING TO A LEAFLET-COMPATIBLE POINT-IN-POLYGON (PIPP) IMPLEMENTATION
-                    // The included code does NOT have a custom PIP function, so we must rely on a helper.
-                    
-                    // Since Turf is loaded, we will correct the coordinate ordering for the check:
-                    
-                    const correctlyOrderedCoordinates = feature.geometry.coordinates[0].map(coord => [coord[1], coord[0]]);
-                    
-                    const correctedPolygon = turf.polygon([correctlyOrderedCoordinates]);
-                    
-                    // Perform the accurate Point-in-Polygon check
-                    return turf.booleanPointInPolygon(turfPoint, correctedPolygon);
-                });
-
-                // ** CORRECTED LOGIC END **
-
-                document.getElementById('result').innerText = isInside ?
-                    "Inside an Eruv (Consult the local Rabbi to be sure)" : "Outside the Eruv";
-            } else {
-                document.getElementById('result').innerText = "Address not found.";
-            }
-        });
-}
+            })
+            .catch(err => {
+                resultElement.className = '';
+                resultElement.innerText = "Error looking up address. Please try again.";
+                resultElement.classList.add('result-neutral');
+            });
+    }
 </script>
-
-
 
 </body>
-
 </html>
